@@ -7,7 +7,7 @@
 #include "ActionCharacter.generated.h"
 
 class UCameraComponent;
-class USpringArmComponent;
+class USpringArmComponent;//编译器至少知道我们处理的是一个类
 
 UCLASS()
 class ACTIONROGUELIKE_API AActionCharacter : public ACharacter
@@ -25,11 +25,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)
 	UCameraComponent* CameraComp;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	void MoveForward(float Value);
-
+	void MoveRight(float Value);
 
 public:	
 	// Called every frame
