@@ -5,6 +5,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"//注意这里不是character.h
+#include "ActionInterfaceComponent.h"
 
 // Sets default values
 AActionCharacter::AActionCharacter()
@@ -19,8 +20,13 @@ AActionCharacter::AActionCharacter()
 	CameraComp = CreateDefaultSubobject<UCameraComponent>("CameraComp");
 	CameraComp->SetupAttachment(SpringArmComp);
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	InteractionComp = CreateDefaultSubobject<UActionInterfaceComponent>("InteractionComp");
 
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	//跳跃时的初始速度(瞬时垂直加速度)。
+	GetCharacterMovement()->JumpZVelocity = 500.0f;
+	//当掉落时，角色可以控制侧向移动的数量。0 =没有控制，1 =在MaxWalkSpeed的最大速度下完全控制。
+	GetCharacterMovement()->AirControl = 0.15f;
 	bUseControllerRotationYaw = false;
 }
 
@@ -49,6 +55,9 @@ void AActionCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &AActionCharacter::PrimaryAttack);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &AActionCharacter::PrimaryInteract);
 }
 
 void AActionCharacter::MoveForward(float Value)
@@ -72,10 +81,31 @@ void AActionCharacter::MoveRight(float Value)
 
 void AActionCharacter::PrimaryAttack()
 {
+	PlayAnimMontage(AttackAnim);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &AActionCharacter::PrimaryAttack_TimerElapsed, 0.2f);
+
+	//GetWorldTimerManager().ClearTimer(TimerHandle_PrimaryAttack);
+
+
+}
+
+void AActionCharacter::PrimaryAttack_TimerElapsed()
+{
 	FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
 	FTransform SpawnTM = FTransform(GetControlRotation(), HandLocation);
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
 }
+
+void AActionCharacter::PrimaryInteract()
+{
+	if (InteractionComp)
+	{
+		InteractionComp->PrimaryInteract();
+	}
+}
+
+
 
